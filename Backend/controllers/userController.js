@@ -142,3 +142,84 @@ exports.forgot = asyncErr(async (req, res, next) => {
     await user.save()
     sendToken(user, 200, res);
   });
+
+// change password
+exports.updatePassword=asyncErr(async(req,res,next)=>{
+  const user=req.user
+  if(!user){
+    return next(new ErrorHandler("user not found",404))
+  }
+  const isVerified =await user.verifyUser(req.body.password)
+  if(!isVerified){
+    return next(new ErrorHandler("incorrect password",400))
+  }
+  if(req.body.newPassword !== req.body.confirmNewPassword){
+    return next(new ErrorHandler("password didn't matched",400))
+  }
+  user.password = req.body.newPassword;
+  await user.save();
+
+  sendToken(user,200,res)
+  res.status(201).json({
+    success:true,
+    message:"password updated"
+  })
+
+})
+
+// get all user --admin
+exports.getAllUser=asyncErr(async(req,res,next)=>{
+  const users = await User.find({"role":"user"});
+  if(!users){
+    return next(new ErrorHandler("No user found",404))
+  }
+
+  res.status(200).json({
+    success:true,
+    users
+  })
+
+})
+
+// get single user details --admin
+exports.getSingleUser=asyncErr(async(req,res,next)=>{
+  const user = await User.findById(req.params.id)
+  if(!user){
+    return next(new ErrorHandler("user not found",404))
+  }
+
+  res.status(200).json({
+    success:true,
+    user
+  })
+})
+
+// update user role --admin
+exports.updateUserRole=asyncErr(async(req,res,next)=>{
+  const user = await User.findById(req.params.id)
+  if(!user){
+    return next(new ErrorHandler("user not found",404))
+  }
+  user.role = req.body.role;
+  await user.save();
+
+  res.status(200).json({
+    success:true,
+    user
+  })
+})
+
+// delete user
+exports.deleteUser=asyncErr(async(req,res,next)=>{
+  const user = await User.findById(req.params.id)
+  if(!user){
+    return next(new ErrorHandler("user not found",404))
+  }
+  
+  await user.remove();
+
+  res.status(200).json({
+    success:true,
+    message:"user removed successfully"
+  })
+})
