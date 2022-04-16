@@ -5,6 +5,8 @@ const ApiFeature = require("../utils/apiFeatures");
 const UserLike = require("../models/likeModel");
 const UserDislike = require("../models/dislikeModel");
 const Subscribe = require("../models/subscribeModel");
+const Comment = require("../models/commentModel");
+const WatchHistory = require("../models/watchHistoryModel");
 
 
 // post video
@@ -47,6 +49,17 @@ exports.getVideo = asyncErr(async(req,res,next)=>{
     console.log(video);
     video.views++;
     await video.save({validateBeforeSave:false})
+    const user = req.user
+    if(user){
+        let watchHistory = await WatchHistory.findOne({user:user._id})
+        if(!watchHistory){
+            watchHistory = await WatchHistory.create({
+                user:user._id
+            })
+        }
+        watchHistory.history.push({videoId:videoId})
+        await watchHistory.save({validateBeforeSave:false})
+    }
     res.status(200).json({
         success:true,
         video
@@ -179,5 +192,43 @@ exports.totalSubscribers= asyncErr(async(req,res,next)=>{
     res.status(200).json({
         success:true,
         count
+    })
+})
+
+// post comment
+exports.postComment = asyncErr(async(req,res,next)=>{
+    const user = req.user._id
+    if(!user){
+        return next(new ErrorHandler('please log in',404))
+    }
+    const videoId = req.query.v
+    if(!videoId){
+        return next(new ErrorHandler('video not found',404))
+    }
+    const replyingTo = req.query.r
+    const text = req.body.comment
+    if(!text){
+        return next(new ErrorHandler('empty comment',404))
+    }
+    await Comment.create({
+        user,
+        videoId,
+        replyingTo,
+        text
+    })
+    res.status(201).json({
+        success:true
+    })
+})
+
+// get comment
+exports.getComment = asyncErr(async(req,res,next)=>{
+    const videoId = req.params.videoId
+    if(!videoId){
+        return next(new ErrorHandler('video not found',404))
+    }
+    const comments = await Comment.find({videoId})
+    res.status(200).json({
+        comments
     })
 })

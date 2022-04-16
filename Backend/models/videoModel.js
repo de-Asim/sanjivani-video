@@ -4,11 +4,15 @@ const User = require('./userModel')
 const videoSchema = new mongoose.Schema({
     title:{
         type:String,
-        required:true
+        required:true,
+        minlength:[3,"please enter atleast 3 charecters"],
+        maxlength:[200,"title can not have more than 200 charecters"]
     },
     description:{
         type:String,
-        required:true
+        required:true,
+        minlength:[3,"please enter atleast 3 charecters"],
+        maxlength:[1000,"description can not have more than 1000 charecters"]
     },
     category:{
         type:String,

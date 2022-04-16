@@ -13,6 +13,9 @@ exports.isAuth = asyncErr(async(req,res,next)=>{
     if(!req.user){
         return next(new ErrorHandler("please login to access",401))
     }
+    if(req.user.role === "blocked"){
+        return next(new ErrorHandler("user is blocked",401))
+    }
 
     next();
 })

@@ -2,20 +2,38 @@ const mongoose = require('mongoose')
 const validator = require('validator')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
-const { default: isEmail } = require('validator/lib/isemail')
 const crypto = require('crypto')
+
 
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
         default: "asim",
-        required: true
+        required: true,
+        minlength:[3, "please enter atleast 3 charecters"],
+        maxlength:[30,"name can not be more than 30 charecters"],
+        validate(value){
+            if(!validator.isAlpha(value,["en-US"], { ignore: " " })){
+                throw new Error("name not valid")
+            }
+        }
     },
     email: {
         type: String,
         required: [true, "please enter your email"],
         unique: true,
-        validate: [isEmail, "please check your email"]
+        validate(value){
+            if(!validator.isEmail(value)){
+                throw new Error("email not valid")
+            }
+        }
+    },
+    mobile: {
+        type: Number,
+        required: [true, "please enter your mobile no"],
+        unique: true,
+        min:[1000000000,"invalid number"],
+        max:[9999999999, "invalid number"]
     },
     password: {
         type: String,
