@@ -80,7 +80,9 @@ userSchema.pre("save", async function (next) {
     if (!this.isModified("password")) {
         next();
     }
-    this.password = await bcrypt.hash(this.password, 10);
+    else{
+        this.password = crypto.pbkdf2Sync(this.password, process.env.SALT,1000,64,`sha512`).toString(`hex`)   
+    }
 })
 
 // generating jwt
@@ -96,7 +98,8 @@ userSchema.methods.generateToken = async function () {
 }
 // verifing password
 userSchema.methods.verifyUser = async function (password) {
-    return await bcrypt.compare(password, this.password)
+    const hash = crypto.pbkdf2Sync(password, process.env.SALT,1000,64,`sha512`).toString(`hex`)
+    return hash === this.password
 }
 
 // generating reset password token

@@ -11,6 +11,7 @@ const Otp = require("../models/emailVerificationModel");
 exports.createUser = asyncErr(async (req, res, next) => {
   const { name, email, mobile, password, role } = req.body;
   const otp = Math.floor(Math.random() * 899999) + 100000;
+  const hashedOtp = crypto.pbkdf2Sync(otp.toString(), process.env.SALT,1000,64,`sha512`).toString(`hex`)
   const user= await User.findOne({email})
   if(user){
     return next(new ErrorHandler("Email already exist",400))
@@ -26,11 +27,11 @@ exports.createUser = asyncErr(async (req, res, next) => {
     if (!otpModel) {
       await Otp.create({
         email: email,
-        otp: otp
+        otp: hashedOtp
       })
     }
     else {
-      otpModel.otp = otp
+      otpModel.otp = hashedOtp
       otpModel.createdAt = Date.now()
       otpModel.expiresAt = Date.now() + 1000 * 60 * 60
       await otpModel.save({ validateBeforeSave: false })
@@ -73,7 +74,8 @@ exports.verifyUser = asyncErr(async (req, res, next) => {
     await Otp.deleteOne({ email })
     return next(new ErrorHandler("Otp expired", 400))
   }
-  if (enteredOtp !== otpModel.otp) {
+  const hashedEnteredOtp = crypto.pbkdf2Sync(enteredOtp.toString(), process.env.SALT,1000,64,`sha512`).toString(`hex`)
+  if (hashedEnteredOtp !== otpModel.otp) {
     return next(new ErrorHandler("Invalid Otp", 400))
   }
   let user = await User.create({
