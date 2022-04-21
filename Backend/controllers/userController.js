@@ -5,16 +5,17 @@ const sendToken = require("../utils/jwtToken");
 const sendEmail = require("../utils/sendEmail");
 const crypto = require("crypto");
 const Otp = require("../models/emailVerificationModel");
+const TokenModel = require("../models/tokenModel");
 
 
 // register user
 exports.createUser = asyncErr(async (req, res, next) => {
   const { name, email, mobile, password, role } = req.body;
   const otp = Math.floor(Math.random() * 899999) + 100000;
-  const hashedOtp = crypto.pbkdf2Sync(otp.toString(), process.env.SALT,1000,64,`sha512`).toString(`hex`)
-  const user= await User.findOne({email})
-  if(user){
-    return next(new ErrorHandler("Email already exist",400))
+  const hashedOtp = crypto.pbkdf2Sync(otp.toString(), process.env.SALT, 1000, 64, `sha512`).toString(`hex`)
+  const user = await User.findOne({ email })
+  if (user) {
+    return next(new ErrorHandler("Email already exist", 400))
   }
   try {
     await sendEmail({
@@ -74,7 +75,7 @@ exports.verifyUser = asyncErr(async (req, res, next) => {
     await Otp.deleteOne({ email })
     return next(new ErrorHandler("Otp expired", 400))
   }
-  const hashedEnteredOtp = crypto.pbkdf2Sync(enteredOtp.toString(), process.env.SALT,1000,64,`sha512`).toString(`hex`)
+  const hashedEnteredOtp = crypto.pbkdf2Sync(enteredOtp.toString(), process.env.SALT, 1000, 64, `sha512`).toString(`hex`)
   if (hashedEnteredOtp !== otpModel.otp) {
     return next(new ErrorHandler("Invalid Otp", 400))
   }
@@ -89,6 +90,10 @@ exports.verifyUser = asyncErr(async (req, res, next) => {
       url: "sample url",
     },
   });
+  res.cookie("user", null, {
+    expires: new Date(Date.now()),
+    httpOnly: true,})
+
   await sendToken(user, 201, res);
   await Otp.deleteOne({ email })
   res.status(201).json({
@@ -108,6 +113,8 @@ exports.loginUser = asyncErr(async (req, res, next) => {
     return next(new ErrorHandler("Invalid login credentials", 401));
   }
 
+
+
   sendToken(user, 200, res);
 });
 
@@ -115,13 +122,18 @@ exports.loginUser = asyncErr(async (req, res, next) => {
 exports.logout = asyncErr(async (req, res, next) => {
   const token = req.cookies.jwt
   const user = req.user
-  user.tokens.forEach((elem, index) => {
-    if (user.tokens[index].token === token) {
-      user.tokens.splice(index, 1)
+  const userToken = await TokenModel.findOne({ user: user._id })
+  userToken.tokens.forEach((elem, index) => {
+    if (userToken.tokens[index].token === token) {
+      userToken.tokens.splice(index, 1)
     }
   })
-  await user.save({ validateBeforeSave: false })
+  await userToken.save({ validateBeforeSave: false })
   res.cookie("jwt", null, {
+    expires: new Date(Date.now()),
+    httpOnly: true,
+  });
+  res.cookie("profile", null, {
     expires: new Date(Date.now()),
     httpOnly: true,
   });
@@ -135,9 +147,14 @@ exports.logout = asyncErr(async (req, res, next) => {
 exports.logoutAll = asyncErr(async (req, res, next) => {
   const token = req.cookies.jwt
   const user = req.user
-  user.tokens = []
-  await user.save({ validateBeforeSave: false })
+  const userToken = await TokenModel.findOne({ user: user._id })
+  userToken.tokens = []
+  await userToken.save({ validateBeforeSave: false })
   res.cookie("jwt", null, {
+    expires: new Date(Date.now()),
+    httpOnly: true,
+  });
+  res.cookie("profile", null, {
     expires: new Date(Date.now()),
     httpOnly: true,
   });
@@ -149,7 +166,7 @@ exports.logoutAll = asyncErr(async (req, res, next) => {
 
 // get user details
 exports.userDetails = asyncErr(async (req, res, next) => {
-  const user = req.user
+  const user = await User.findOne({email:req.user.email},{password:0})
   if (!user) {
     return next(new ErrorHandler("user not found", 404))
   }
@@ -243,7 +260,7 @@ exports.updatePassword = asyncErr(async (req, res, next) => {
 
 // get all user --admin
 exports.getAllUser = asyncErr(async (req, res, next) => {
-  const users = await User.find({ "role": "user" });
+  const users = await User.find({ "role": "user" },{password:0});
   if (!users) {
     return next(new ErrorHandler("No user found", 404))
   }
@@ -257,7 +274,7 @@ exports.getAllUser = asyncErr(async (req, res, next) => {
 
 // get single user details --admin
 exports.getSingleUser = asyncErr(async (req, res, next) => {
-  const user = await User.findById(req.params.id)
+  const user = await User.findById(req.params.id,{password:0})
   if (!user) {
     return next(new ErrorHandler("user not found", 404))
   }

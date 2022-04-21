@@ -9,12 +9,28 @@ exports.isAuth = asyncErr(async(req,res,next)=>{
         return next(new ErrorHandler("please login to access",401))
     }
     const userData = jwt.verify(token,process.env.SECRET_KEY);
-    req.user = await User.findById(userData.id)
-    if(!req.user){
+
+    if(!userData){
         return next(new ErrorHandler("please login to access",401))
     }
-    if(req.user.role === "blocked"){
-        return next(new ErrorHandler("user is blocked",401))
+    const profile = req.cookies.profile
+    if(!profile){
+        req.user = await User.findById(userData.id,{name:1,email:1,role:1,})
+        if(!req.user){
+            return next(new ErrorHandler("please login to access",401))
+        }
+        if(req.user.role === "blocked"){
+            return next(new ErrorHandler("user is blocked",401))
+        }
+    }
+    else{
+        req.user={
+            ...profile,
+            _id:userData.id
+        }
+        if(profile.role === "blocked"){
+            return next(new ErrorHandler("user is blocked",401))
+        }
     }
 
     next();

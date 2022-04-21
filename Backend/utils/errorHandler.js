@@ -4,5 +4,6 @@ class ErrorHandler extends Error{
         this.statusCode=statusCode;
         Error.captureStackTrace(this,this.constractor);
     }
+
 }
 module.exports = ErrorHandler;

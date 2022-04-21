@@ -58,14 +58,6 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    tokens: [
-        {
-            token: {
-                type: String,
-                required: true,
-            },
-        },
-    ],
     resetPasswordToken: {
         type: String
     },
@@ -85,17 +77,7 @@ userSchema.pre("save", async function (next) {
     }
 })
 
-// generating jwt
-userSchema.methods.generateToken = async function () {
-    try {
-        const token = jwt.sign({ id: this._id.toString() }, process.env.SECRET_KEY)
-        this.tokens = this.tokens.concat({ token: token });
-        await this.save();
-        return token;
-    } catch (error) {
-        console.log(error);
-    }
-}
+
 // verifing password
 userSchema.methods.verifyUser = async function (password) {
     const hash = crypto.pbkdf2Sync(password, process.env.SALT,1000,64,`sha512`).toString(`hex`)
