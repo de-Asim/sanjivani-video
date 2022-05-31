@@ -46,7 +46,6 @@ exports.getVideo = asyncErr(async(req,res,next)=>{
     if(!video){
         return next(new ErrorHandler('video not found',404))
     }
-    console.log(video);
     video.views++;
     await video.save({validateBeforeSave:false})
     const user = req.user
@@ -158,16 +157,13 @@ exports.subscribeChannel = asyncErr(async(req,res,next)=>{
     if(!channelId){
         return next(new ErrorHandler('channel not found','404'))
     }
-    console.log(user._id);
     let subscribedChannels = await Subscribe.findOne({user:user._id})
-    console.log(subscribedChannels);
     if(!subscribedChannels){
         subscribedChannels = await Subscribe.create({
             user:user._id
         })
     }
     if(subscribedChannels.subscribedChannelId.includes(channelId)){
-        console.log('yes');
         let index = subscribedChannels.subscribedChannelId.indexOf(channelId)
         subscribedChannels.subscribedChannelId.splice(index,1)
         await subscribedChannels.save({validateBeforeSave:false})

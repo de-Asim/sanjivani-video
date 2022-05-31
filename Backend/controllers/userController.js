@@ -180,7 +180,6 @@ exports.userDetails = asyncErr(async (req, res, next) => {
 
 exports.forgot = asyncErr(async (req, res, next) => {
   const user = await User.findOne({ email: req.body.email });
-  console.log(user);
   if (!user) {
     return next(new ErrorHandler("user not found", 404));
   }
